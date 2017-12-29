@@ -1,4 +1,4 @@
-from dictproxy import app
+from dictproxy.dictproxy import app
 
 @app.route('/')
 @app.route('/index')
