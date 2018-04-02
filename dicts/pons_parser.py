@@ -2,6 +2,7 @@ import unittest
 from enum import Enum
 from html.parser import HTMLParser
 
+
 class TestPonsParser(unittest.TestCase):
     def test_find_translation(self):
         tag_string = """
@@ -18,6 +19,31 @@ Schwangerschaftstest
         pons_parser = PonsParser()
         pons_parser.feed(tag_string)
         self.assertEqual(tags, pons_parser.lookup_table)
+
+    def test_find_multiple_translations(self):
+        tag_string = """
+<dl>
+  <dt>
+test
+  </dt>
+<dd>
+Untersuchung
+</dd>
+</dl>
+<dl>
+  <dt>
+      test
+  </dt>
+  <dd>
+Test
+  </dd>
+</dl>
+        """
+        tags = {"test": ["Untersuchung", "Test"]}
+        pons_parser = PonsParser()
+        pons_parser.feed(tag_string)
+        self.assertEqual(tags, pons_parser.lookup_table)
+
 
 class PonsParserStates(Enum):
     SEARCHING = 0
