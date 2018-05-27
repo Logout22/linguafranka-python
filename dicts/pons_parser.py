@@ -8,10 +8,10 @@ class TestPonsParser(unittest.TestCase):
         tag_string = """
 <dl>
 <dt>
-pregnancy test
+<div class="source"><a>pregnancy test</a></div>
 </dt>
 <dd>
-Schwangerschaftstest
+<div class="target"><a>Schwangerschaftstest</a></div>
 </dd>
 </dl>
         """
@@ -24,18 +24,18 @@ Schwangerschaftstest
         tag_string = """
 <dl>
   <dt>
-test
+<div class="source"><a>test</a></div>
   </dt>
 <dd>
-Untersuchung
+<div class="target"><a>Untersuchung</a></div>
 </dd>
 </dl>
 <dl>
   <dt>
-      test
+      <div class="source"><a>test</a></div>
   </dt>
   <dd>
-Test
+<div class="target"><a>Test</a></div>
   </dd>
 </dl>
         """
@@ -78,6 +78,8 @@ class PonsParserStates(Enum):
     IN_SOURCE = 15
     IN_DD = 20
     IN_TARGET = 25
+    IN_SOURCELINK = 30
+    IN_TARGETLINK = 35
 
 
 class PonsParser(HTMLParser):
@@ -96,18 +98,30 @@ class PonsParser(HTMLParser):
                 self.state == PonsParserStates.IN_DT and \
                 ('class', 'source') in attrs:
             self.state = PonsParserStates.IN_SOURCE
+        elif tag == 'div' and \
+                self.state == PonsParserStates.IN_DD and \
+                ('class', 'target') in attrs:
+            self.state = PonsParserStates.IN_TARGET
+        elif tag == 'a' and self.state == PonsParserStates.IN_SOURCE:
+            self.state = PonsParserStates.IN_SOURCELINK
+        elif tag == 'a' and self.state == PonsParserStates.IN_TARGET:
+            self.state = PonsParserStates.IN_TARGETLINK
 
     def handle_endtag(self, tag):
         if (tag == 'dt' and self.state == PonsParserStates.IN_DT) or \
                 (tag == 'dd' and self.state == PonsParserStates.IN_DD) or \
-                (tag == 'div' and self.state == PonsParserStates.IN_SOURCE) or \
-                (tag == 'div' and self.state == PonsParserStates.IN_TARGET):
+                (tag == 'div' and
+                 (self.state == PonsParserStates.IN_SOURCE or
+                  self.state == PonsParserStates.IN_TARGET)) or \
+                (tag == 'a' and
+                 (self.state == PonsParserStates.IN_SOURCELINK or
+                  self.state == PonsParserStates.IN_TARGETLINK)):
             self.state = PonsParserStates.SEARCHING
 
     def handle_data(self, data):
-        if self.state == PonsParserStates.IN_DT:
+        if self.state == PonsParserStates.IN_SOURCELINK:
             self.current_key = data.strip()
-        elif self.state == PonsParserStates.IN_DD:
+        elif self.state == PonsParserStates.IN_TARGETLINK:
             self.append_to_lookup_table(data)
 
     def append_to_lookup_table(self, data):
